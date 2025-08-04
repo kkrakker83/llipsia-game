@@ -3,18 +3,22 @@ body {
   text-align: center;
   background: #dff6ff;
   margin: 0;
-  padding: 20px;
+  padding: 10px;
+}
+
+h1 {
+  margin: 10px;
 }
 
 canvas {
   background-color: #ffffff;
   border: 2px solid #000;
+  width: 90vw;
+  height: 90vw;
+  max-width: 400px;
+  max-height: 400px;
   display: block;
   margin: 0 auto;
-}
-
-h1 {
-  margin-bottom: 10px;
 }
 
 #score {

@@ -1,8 +1,18 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const gridSize = 20;
-const tileCount = canvas.width / gridSize;
+// Adaptar canvas al tamaño visual
+function resizeCanvas() {
+  const size = Math.min(window.innerWidth * 0.9, 400);
+  canvas.width = size;
+  canvas.height = size;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// Grid dinámico
+let gridSize = 20;
+let tileCount = canvas.width / gridSize;
 
 let llipsia = [{ x: 10, y: 10 }];
 let direction = { x: 0, y: 0 };
@@ -10,6 +20,7 @@ let food = generateFood();
 let score = 0;
 
 function draw() {
+  tileCount = canvas.width / gridSize;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (direction.x === 0 && direction.y === 0) {
@@ -17,19 +28,24 @@ function draw() {
     return;
   }
 
-  ctx.font = "20px Arial";
-  ctx.fillText("👻", food.x * gridSize, food.y * gridSize + 18);
+  ctx.font = `${canvas.width / 20}px Arial`;
+  ctx.fillText("👻", food.x * gridSize, food.y * gridSize + gridSize * 0.9);
 
-  for (let part of llipsia) {
-    ctx.fillStyle = "#4444aa";
-    ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
+  for (let i = 0; i < llipsia.length; i++) {
+    const part = llipsia[i];
+    if (i === 0) {
+      ctx.fillText("🐧", part.x * gridSize, part.y * gridSize + gridSize * 0.9);
+    } else {
+      ctx.fillStyle = "#4444aa";
+      ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
+    }
   }
 
   const head = { x: llipsia[0].x + direction.x, y: llipsia[0].y + direction.y };
 
   if (
     head.x < 0 || head.y < 0 ||
-    head.x > tileCount - 1 || head.y > tileCount - 1 ||
+    head.x >= tileCount || head.y >= tileCount ||
     llipsia.some(segment => segment.x === head.x && segment.y === head.y)
   ) {
     alert("¡Llipsia chocó! Puntuación: " + score);
@@ -49,12 +65,18 @@ function draw() {
 }
 
 function drawInitialFrame() {
-  ctx.font = "20px Arial";
-  ctx.fillText("👻", food.x * gridSize, food.y * gridSize + 18);
+  tileCount = canvas.width / gridSize;
+  ctx.font = `${canvas.width / 20}px Arial`;
+  ctx.fillText("👻", food.x * gridSize, food.y * gridSize + gridSize * 0.9);
 
-  for (let part of llipsia) {
-    ctx.fillStyle = "#4444aa";
-    ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
+  for (let i = 0; i < llipsia.length; i++) {
+    const part = llipsia[i];
+    if (i === 0) {
+      ctx.fillText("🐧", part.x * gridSize, part.y * gridSize + gridSize * 0.9);
+    } else {
+      ctx.fillStyle = "#4444aa";
+      ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
+    }
   }
 }
 
@@ -77,7 +99,6 @@ function resetGame() {
   food = generateFood();
 }
 
-// 👆 Control táctil
 canvas.addEventListener("touchstart", function (e) {
   const touch = e.touches[0];
   const rect = canvas.getBoundingClientRect();
@@ -100,5 +121,4 @@ canvas.addEventListener("touchstart", function (e) {
   }
 });
 
-// Velocidad lenta
 setInterval(draw, 350);
