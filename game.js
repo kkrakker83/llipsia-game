@@ -12,17 +12,14 @@ let score = 0;
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Esperar a que el jugador presione dirección
   if (direction.x === 0 && direction.y === 0) {
     drawInitialFrame();
     return;
   }
 
-  // Dibujar comida
   ctx.font = "20px Arial";
   ctx.fillText("❤️👻", food.x * gridSize, food.y * gridSize + 18);
 
-  // Dibujar cuerpo de Llipsia
   for (let part of llipsia) {
     ctx.fillStyle = "#4444aa";
     ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
@@ -30,7 +27,6 @@ function draw() {
 
   const head = { x: llipsia[0].x + direction.x, y: llipsia[0].y + direction.y };
 
-  // Colisión
   if (
     head.x < 0 || head.y < 0 ||
     head.x >= tileCount || head.y >= tileCount ||
@@ -43,7 +39,6 @@ function draw() {
 
   llipsia.unshift(head);
 
-  // Comer comida
   if (head.x === food.x && head.y === food.y) {
     score++;
     document.getElementById('score').innerText = "Puntuación: " + score;
@@ -54,11 +49,9 @@ function draw() {
 }
 
 function drawInitialFrame() {
-  // Dibujar comida
   ctx.font = "20px Arial";
   ctx.fillText("❤️👻", food.x * gridSize, food.y * gridSize + 18);
 
-  // Dibujar cuerpo de Llipsia
   for (let part of llipsia) {
     ctx.fillStyle = "#4444aa";
     ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
@@ -84,21 +77,28 @@ function resetGame() {
   food = generateFood();
 }
 
-function changeDirection(dir) {
-  switch (dir) {
-    case 'up':
-      if (direction.y === 0) direction = { x: 0, y: -1 };
-      break;
-    case 'down':
-      if (direction.y === 0) direction = { x: 0, y: 1 };
-      break;
-    case 'left':
-      if (direction.x === 0) direction = { x: -1, y: 0 };
-      break;
-    case 'right':
-      if (direction.x === 0) direction = { x: 1, y: 0 };
-      break;
-  }
-}
+// 👆 Control táctil: detectar hacia dónde se tocó respecto a la cabeza
+canvas.addEventListener("touchstart", function (e) {
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const tapX = touch.clientX - rect.left;
+  const tapY = touch.clientY - rect.top;
 
-setInterval(draw, 150);
+  const head = llipsia[0];
+  const headX = head.x * gridSize + gridSize / 2;
+  const headY = head.y * gridSize + gridSize / 2;
+
+  const dx = tapX - headX;
+  const dy = tapY - headY;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx < 0 && direction.x === 0) direction = { x: -1, y: 0 }; // izquierda
+    else if (dx > 0 && direction.x === 0) direction = { x: 1, y: 0 }; // derecha
+  } else {
+    if (dy < 0 && direction.y === 0) direction = { x: 0, y: -1 }; // arriba
+    else if (dy > 0 && direction.y === 0) direction = { x: 0, y: 1 }; // abajo
+  }
+});
+
+// ⏱️ Velocidad reducida a 350ms
+setInterval(draw, 350);

@@ -21,17 +21,3 @@ h1 {
   margin: 10px;
   font-size: 18px;
 }
-
-.controls button {
-  font-size: 24px;
-  padding: 10px;
-  margin: 5px;
-  border-radius: 8px;
-  border: none;
-  background: #69b;
-  color: white;
-}
-
-.controls {
-  margin-top: 15px;
-}
