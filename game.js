@@ -12,6 +12,12 @@ let score = 0;
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Esperar a que el jugador presione dirección
+  if (direction.x === 0 && direction.y === 0) {
+    drawInitialFrame();
+    return;
+  }
+
   // Dibujar comida
   ctx.font = "20px Arial";
   ctx.fillText("❤️👻", food.x * gridSize, food.y * gridSize + 18);
@@ -22,10 +28,9 @@ function draw() {
     ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
   }
 
-  // Movimiento
   const head = { x: llipsia[0].x + direction.x, y: llipsia[0].y + direction.y };
 
-  // Colisión con bordes o ella misma
+  // Colisión
   if (
     head.x < 0 || head.y < 0 ||
     head.x >= tileCount || head.y >= tileCount ||
@@ -45,6 +50,18 @@ function draw() {
     food = generateFood();
   } else {
     llipsia.pop();
+  }
+}
+
+function drawInitialFrame() {
+  // Dibujar comida
+  ctx.font = "20px Arial";
+  ctx.fillText("❤️👻", food.x * gridSize, food.y * gridSize + 18);
+
+  // Dibujar cuerpo de Llipsia
+  for (let part of llipsia) {
+    ctx.fillStyle = "#4444aa";
+    ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
   }
 }
 
