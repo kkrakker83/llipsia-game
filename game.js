@@ -18,7 +18,7 @@ function draw() {
   }
 
   ctx.font = "20px Arial";
-  ctx.fillText("❤️👻", food.x * gridSize, food.y * gridSize + 18);
+  ctx.fillText("👻", food.x * gridSize, food.y * gridSize + 18);
 
   for (let part of llipsia) {
     ctx.fillStyle = "#4444aa";
@@ -29,7 +29,7 @@ function draw() {
 
   if (
     head.x < 0 || head.y < 0 ||
-    head.x >= tileCount || head.y >= tileCount ||
+    head.x > tileCount - 1 || head.y > tileCount - 1 ||
     llipsia.some(segment => segment.x === head.x && segment.y === head.y)
   ) {
     alert("¡Llipsia chocó! Puntuación: " + score);
@@ -50,7 +50,7 @@ function draw() {
 
 function drawInitialFrame() {
   ctx.font = "20px Arial";
-  ctx.fillText("❤️👻", food.x * gridSize, food.y * gridSize + 18);
+  ctx.fillText("👻", food.x * gridSize, food.y * gridSize + 18);
 
   for (let part of llipsia) {
     ctx.fillStyle = "#4444aa";
@@ -77,7 +77,7 @@ function resetGame() {
   food = generateFood();
 }
 
-// 👆 Control táctil: detectar hacia dónde se tocó respecto a la cabeza
+// 👆 Control táctil
 canvas.addEventListener("touchstart", function (e) {
   const touch = e.touches[0];
   const rect = canvas.getBoundingClientRect();
@@ -92,13 +92,13 @@ canvas.addEventListener("touchstart", function (e) {
   const dy = tapY - headY;
 
   if (Math.abs(dx) > Math.abs(dy)) {
-    if (dx < 0 && direction.x === 0) direction = { x: -1, y: 0 }; // izquierda
-    else if (dx > 0 && direction.x === 0) direction = { x: 1, y: 0 }; // derecha
+    if (dx < 0 && direction.x === 0) direction = { x: -1, y: 0 };
+    else if (dx > 0 && direction.x === 0) direction = { x: 1, y: 0 };
   } else {
-    if (dy < 0 && direction.y === 0) direction = { x: 0, y: -1 }; // arriba
-    else if (dy > 0 && direction.y === 0) direction = { x: 0, y: 1 }; // abajo
+    if (dy < 0 && direction.y === 0) direction = { x: 0, y: -1 };
+    else if (dy > 0 && direction.y === 0) direction = { x: 0, y: 1 };
   }
 });
 
-// ⏱️ Velocidad reducida a 350ms
+// Velocidad lenta
 setInterval(draw, 350);
