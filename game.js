@@ -189,7 +189,7 @@ class StartScene extends Phaser.Scene {
             fontSize: '32px',
             fill: '#fff',
             backgroundColor: '#000',
-            padding: { x: 20, y: 10 }
+            padding: { x: 40, y: 20 }
         }).setOrigin(0.5).setInteractive();
 
         playBtn.on('pointerdown', () => {
@@ -374,10 +374,11 @@ class GameScene extends Phaser.Scene {
 
         this.time.delayedCall(500, () => {
             this.lives--;
+            this.scene.stop('UIScene'); // Clean up UI before restart/end
+
             if (this.lives > 0) {
                 this.scene.restart({ lives: this.lives, score: this.score });
             } else {
-                this.scene.stop('UIScene');
                 this.add.rectangle(0, 0, 800, 450, 0x000000, 0.7).setOrigin(0).setScrollFactor(0);
                 this.add.text(400, 225, 'GAME OVER', { fontSize: '40px', fill: '#fff' })
                     .setOrigin(0.5).setScrollFactor(0)
@@ -389,6 +390,7 @@ class GameScene extends Phaser.Scene {
     reachGoal(player, goal) {
         this.physics.pause();
         this.isGameOver = true;
+        this.scene.stop('UIScene'); // Clean up UI
 
         this.add.rectangle(0, 0, 800, 450, 0x000000, 0.7).setOrigin(0).setScrollFactor(0);
         this.add.text(400, 200, '¡Encontraste a tu amor!', {
@@ -414,6 +416,9 @@ class UIScene extends Phaser.Scene {
     }
 
     create() {
+        // Multi-touch support
+        this.input.addPointer(3);
+
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         const btnSize = 80;
@@ -441,7 +446,11 @@ class UIScene extends Phaser.Scene {
     }
 
     createBtn(x, y, key, type) {
-        const btn = this.add.image(x, y, key).setInteractive().setAlpha(0.5);
+        // Larger hit area for easier touch (Radius 60 = 120px diameter)
+        const hitArea = new Phaser.Geom.Circle(40, 40, 60);
+        const btn = this.add.image(x, y, key)
+            .setInteractive(hitArea, Phaser.Geom.Circle.Contains)
+            .setAlpha(0.5);
 
         btn.on('pointerdown', () => {
             this.events.emit('input', { [type]: true });
