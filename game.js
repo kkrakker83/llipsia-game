@@ -41,10 +41,48 @@ class BootScene extends Phaser.Scene {
         this.createButtonTexture('btnLeft', '⬅️', 80);
         this.createButtonTexture('btnRight', '➡️', 80);
         this.createButtonTexture('btnJump', '⬆️', 80);
+
+        // Cloud Texture
+        this.createCloudTexture('cloud');
     }
 
     create() {
         this.scene.start('StartScene');
+    }
+
+    createCloudTexture(key) {
+        const width = 200;
+        const height = 100;
+        const rt = this.make.renderTexture({ width, height });
+
+        const graphics = this.make.graphics();
+        graphics.fillStyle(0xffffff, 0.9);
+
+        // Draw cloud shape
+        graphics.fillCircle(40, 60, 30);
+        graphics.fillCircle(80, 50, 40);
+        graphics.fillCircle(120, 60, 30);
+        graphics.fillCircle(160, 60, 20);
+
+        // Draw Text
+        const text = this.make.text({
+            text: 'Llipsia Castillo',
+            style: {
+                fontSize: '18px',
+                fontFamily: 'Arial',
+                color: '#87CEEB', // Sky blue
+                fontStyle: 'bold'
+            }
+        }).setOrigin(0.5);
+
+        rt.draw(graphics, 0, 0);
+        rt.draw(text, 100, 60);
+
+        rt.saveTexture(key);
+
+        graphics.destroy();
+        text.destroy();
+        rt.destroy();
     }
 
     createEmojiTexture(key, emoji, size) {
@@ -134,6 +172,10 @@ class StartScene extends Phaser.Scene {
         // Background
         this.add.image(400, 225, 'background');
 
+        // Clouds
+        this.add.image(150, 100, 'cloud').setAlpha(0.8);
+        this.add.image(650, 150, 'cloud').setAlpha(0.8).setScale(1.1);
+
         // Title
         this.add.text(400, 150, 'Llipsia: Aventura Invernal', {
             fontSize: '48px',
@@ -181,6 +223,17 @@ class GameScene extends Phaser.Scene {
 
         // Fixed Background
         this.add.image(400, 225, 'background').setScrollFactor(0);
+
+        // Clouds (Parallax)
+        for (let i = 0; i < 8; i++) {
+            const x = Phaser.Math.Between(0, 2000);
+            const y = Phaser.Math.Between(50, 200);
+            const scale = Phaser.Math.FloatBetween(0.8, 1.2);
+            this.add.image(x, y, 'cloud')
+                .setScrollFactor(0.1)
+                .setScale(scale)
+                .setAlpha(0.8);
+        }
 
         // Level Generation
         this.platforms = this.physics.add.staticGroup();
