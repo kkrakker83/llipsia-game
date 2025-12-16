@@ -11,11 +11,11 @@ const config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 1000 },
+            gravity: { y: 800 },
             debug: false
         }
     },
-    scene: [] // Will be populated with scenes
+    scene: [] // Populated later
 };
 
 class BootScene extends Phaser.Scene {
@@ -24,241 +24,329 @@ class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        // Create simple graphics for assets
-        this.makeGraphics('player', 0x0095DD, 32, 48); // Llipsia: Blue Penguin
-        this.makeGraphics('ground', 0x654321, 32, 32); // Ground: Brown
-        this.makeGraphics('platform', 0xAADDFF, 32, 32); // Ice Platform: Light Blue
-        this.makeGraphics('enemy', 0xFF0000, 32, 32); // Chicken: Red
-        this.makeGraphics('goal', 0xFFFFFF, 40, 48, 0.5); // Gasparín: White Ghost (alpha)
-        this.makeGraphics('bullet', 0xFFC0CB, 10, 10); // Heart/Snowball: Pink
+        // Generate Emoji Textures
+        this.createEmojiTexture('player', '🐧', 40);
+        this.createEmojiTexture('enemy', '🐔', 40);
+        this.createEmojiTexture('goal', '👻', 48);
 
-        // Mobile UI Assets
-        this.makeCircle('btnDir', 0x888888, 50, 0.5);
-        this.makeCircle('btnJump', 0x44FF44, 50, 0.5);
-        this.makeCircle('btnAction', 0xFF4444, 50, 0.5);
+        // Generate Environment Textures
+        this.createSnowTexture('ground', 32, 32);
+        this.createSnowTexture('platform', 32, 32);
+        this.createGradientTexture('background', 800, 450, '#00FFFF', '#FFFFFF');
+
+        // Particle Texture
+        this.createCircleTexture('particle', 0xFF0000, 8);
+
+        // UI Textures
+        this.createButtonTexture('btnLeft', '⬅️', 80);
+        this.createButtonTexture('btnRight', '➡️', 80);
+        this.createButtonTexture('btnJump', '⬆️', 80);
     }
 
     create() {
-        this.scene.start('GameScene', { lives: 3 });
+        this.scene.start('StartScene');
     }
 
-    makeGraphics(key, color, width, height, alpha = 1) {
+    createEmojiTexture(key, emoji, size) {
+        const text = this.make.text({
+            text: emoji,
+            style: {
+                fontSize: `${size}px`,
+                fontFamily: 'Arial, "Segoe UI Emoji", "Noto Color Emoji", sans-serif',
+                align: 'center'
+            }
+        });
+
+        const width = text.width;
+        const height = text.height;
+
+        const rt = this.make.renderTexture({ width, height });
+        rt.draw(text, 0, 0);
+        rt.saveTexture(key);
+
+        text.destroy();
+        rt.destroy();
+    }
+
+    createSnowTexture(key, width, height) {
         const graphics = this.make.graphics();
-        graphics.fillStyle(color, alpha);
+        graphics.fillStyle(0xFFFFFF);
         graphics.fillRect(0, 0, width, height);
+        graphics.lineStyle(4, 0x87CEEB); // Sky Blue border
+        graphics.strokeRect(0, 0, width, height);
         graphics.generateTexture(key, width, height);
         graphics.destroy();
     }
 
-    makeCircle(key, color, radius, alpha = 1) {
+    createGradientTexture(key, width, height, colorTop, colorBottom) {
+        const canvas = this.textures.createCanvas(key, width, height);
+        const context = canvas.context;
+        const grd = context.createLinearGradient(0, 0, 0, height);
+        grd.addColorStop(0, colorTop);
+        grd.addColorStop(1, colorBottom);
+        context.fillStyle = grd;
+        context.fillRect(0, 0, width, height);
+        canvas.refresh();
+    }
+
+    createCircleTexture(key, color, radius) {
         const graphics = this.make.graphics();
-        graphics.fillStyle(color, alpha);
+        graphics.fillStyle(color, 1);
         graphics.fillCircle(radius, radius, radius);
         graphics.generateTexture(key, radius * 2, radius * 2);
         graphics.destroy();
+    }
+
+    createButtonTexture(key, emoji, size) {
+        const rt = this.make.renderTexture({ width: size, height: size });
+
+        // Background circle
+        const circle = this.make.graphics();
+        circle.fillStyle(0xffffff, 0.3); // Semi-transparent white
+        circle.fillCircle(size/2, size/2, size/2); // Draws at local coordinates
+
+        // Emoji Text
+        const text = this.make.text({
+            text: emoji,
+            style: {
+                fontSize: `${size * 0.6}px`,
+                fontFamily: 'Arial, "Segoe UI Emoji", "Noto Color Emoji", sans-serif',
+                align: 'center'
+            }
+        }).setOrigin(0.5);
+
+        rt.draw(circle, 0, 0);
+        rt.draw(text, size/2, size/2);
+        rt.saveTexture(key);
+
+        circle.destroy();
+        text.destroy();
+        rt.destroy();
+    }
+}
+
+class StartScene extends Phaser.Scene {
+    constructor() {
+        super('StartScene');
+    }
+
+    create() {
+        // Background
+        this.add.image(400, 225, 'background');
+
+        // Title
+        this.add.text(400, 150, 'Llipsia: Aventura Invernal', {
+            fontSize: '48px',
+            fill: '#000',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        // Play Button
+        const playBtn = this.add.text(400, 300, 'JUGAR', {
+            fontSize: '32px',
+            fill: '#fff',
+            backgroundColor: '#000',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5).setInteractive();
+
+        playBtn.on('pointerdown', () => {
+            this.scene.start('GameScene');
+        });
+
+        playBtn.on('pointerover', () => playBtn.setScale(1.1));
+        playBtn.on('pointerout', () => playBtn.setScale(1));
     }
 }
 
 class GameScene extends Phaser.Scene {
     constructor() {
         super('GameScene');
-        this.player = null;
-        this.cursors = null;
+        this.jumps = 0;
         this.score = 0;
         this.lives = 3;
-        this.levelLength = 2000;
-
-        // Input states from UI
-        this.inputs = {
-            left: false,
-            right: false,
-            jump: false,
-            action: false
-        };
-
-        this.lastFired = 0;
+        this.inputs = { left: false, right: false, jump: false };
     }
 
     init(data) {
         this.lives = data.lives !== undefined ? data.lives : 3;
         this.score = data.score !== undefined ? data.score : 0;
+        this.jumps = 0;
+        this.isGameOver = false;
+        this.inputs = { left: false, right: false, jump: false };
     }
 
     create() {
-        // Environment
-        this.cameras.main.setBackgroundColor('#87CEEB'); // Sky Blue
+        this.isGameOver = false;
 
-        // Create Ground and Platforms
+        // Fixed Background
+        this.add.image(400, 225, 'background').setScrollFactor(0);
+
+        // Level Generation
         this.platforms = this.physics.add.staticGroup();
+        const levelWidth = 2000;
+        this.physics.world.setBounds(0, 0, levelWidth, 450);
 
-        // Ground floor
-        for (let x = 0; x < this.levelLength; x += 32) {
-            this.platforms.create(x, 434, 'ground').setOrigin(0, 0).refreshBody();
+        // Ground
+        for (let x = 0; x < levelWidth; x += 32) {
+            this.platforms.create(x, 434, 'ground').setOrigin(0).refreshBody();
         }
 
-        // Random Platforms
-        for (let i = 0; i < 20; i++) {
-            const x = Phaser.Math.Between(200, this.levelLength - 200);
-            const y = Phaser.Math.Between(150, 350);
+        // Platforms
+        for (let i = 0; i < 25; i++) {
+            const x = Phaser.Math.Between(200, levelWidth - 200);
+            const y = Phaser.Math.Between(100, 350);
             this.platforms.create(x, y, 'platform');
         }
 
-        // Player (Llipsia)
+        // Player
         this.player = this.physics.add.sprite(100, 350, 'player');
-        this.player.setBounce(0.1);
-        this.player.setCollideWorldBounds(false); // Can fall off world
+        this.player.setCollideWorldBounds(true);
+        this.player.body.setGravityY(0); // Use scene gravity
 
         // Camera
-        this.cameras.main.setBounds(0, 0, this.levelLength, 450);
-        this.cameras.main.startFollow(this.player, true, 0.05, 0.05);
+        this.cameras.main.setBounds(0, 0, levelWidth, 450);
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        // Goal (Gasparín)
-        this.goal = this.physics.add.staticSprite(this.levelLength - 100, 350, 'goal');
-
-        // Enemies (Chickens)
+        // Enemies
         this.enemies = this.physics.add.group();
-        for (let i = 0; i < 5; i++) {
-            const x = Phaser.Math.Between(300, this.levelLength - 300);
+        for (let i = 0; i < 8; i++) {
+            const x = Phaser.Math.Between(400, levelWidth - 300);
             const y = 100;
             const enemy = this.enemies.create(x, y, 'enemy');
             enemy.setBounce(1);
             enemy.setCollideWorldBounds(true);
-            enemy.setVelocityX(Phaser.Math.Between(-50, 50) || 50);
+            enemy.setVelocityX(Phaser.Math.Between(-80, 80) || 50);
         }
 
-        // Bullets group
-        this.bullets = this.physics.add.group({
-            defaultKey: 'bullet',
-            maxSize: 10
-        });
+        // Goal
+        this.goal = this.physics.add.staticSprite(levelWidth - 100, 350, 'goal');
 
         // Collisions
         this.physics.add.collider(this.player, this.platforms);
         this.physics.add.collider(this.enemies, this.platforms);
-        this.physics.add.collider(this.goal, this.platforms);
+        this.physics.add.collider(this.goal, this.platforms); // Just in case
 
-        // Overlaps
-        this.physics.add.overlap(this.player, this.goal, this.reachGoal, null, this);
         this.physics.add.collider(this.player, this.enemies, this.hitEnemy, null, this);
-        this.physics.add.overlap(this.bullets, this.enemies, this.shootEnemy, null, this);
+        this.physics.add.overlap(this.player, this.goal, this.reachGoal, null, this);
 
-        // Keyboard Input
+        // Input
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.actionKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-        // Launch UI Scene
-        this.scene.launch('UIScene', { lives: this.lives, score: this.score });
-
-        // Listen for UI events
+        // UI
+        this.scene.launch('UIScene', { score: this.score, lives: this.lives });
         const uiScene = this.scene.get('UIScene');
         if (uiScene) {
             uiScene.events.on('input', (data) => {
                 this.inputs = { ...this.inputs, ...data };
             });
         }
+
+        // Jump state tracking
+        this.prevJumpState = false;
     }
 
     update(time, delta) {
-        // Check if player fell off
-        if (this.player.y > 500) {
-            this.handlePlayerDeath();
+        if (this.isGameOver) return;
+
+        // Death check (fall)
+        if (this.player.y > 450) {
+            this.handleDeath();
             return;
         }
 
-        const speed = 160;
+        const speed = 200;
+        const isLeft = this.cursors.left.isDown || this.inputs.left;
+        const isRight = this.cursors.right.isDown || this.inputs.right;
+        const isJump = this.cursors.up.isDown || this.inputs.jump;
 
-        // Combined Input (Keyboard + Touch)
-        if (this.cursors.left.isDown || this.inputs.left) {
+        // Horizontal Movement
+        if (isLeft) {
             this.player.setVelocityX(-speed);
-            this.player.flipX = true;
-        } else if (this.cursors.right.isDown || this.inputs.right) {
+            this.player.setFlipX(true); // Face left
+        } else if (isRight) {
             this.player.setVelocityX(speed);
-            this.player.flipX = false;
+            this.player.setFlipX(false); // Face right
         } else {
             this.player.setVelocityX(0);
         }
 
-        if ((this.cursors.up.isDown || this.inputs.jump) && this.player.body.touching.down) {
-            this.player.setVelocityY(-550);
+        // Jump Logic (Double Jump)
+        const onFloor = this.player.body.touching.down;
+
+        if (onFloor) {
+            this.jumps = 0;
         }
 
-        if ((this.actionKey.isDown || this.inputs.action) && time > this.lastFired) {
-            this.fireBullet();
-            this.lastFired = time + 500;
+        if (isJump && !this.prevJumpState) {
+            // Jump pressed just now
+            if (onFloor || this.jumps < 2) {
+                this.player.setVelocityY(-450);
+                this.jumps++;
+            }
         }
-
-        // Simple enemy patrol (bounce off walls/platforms) is handled by physics bounce + collision
-    }
-
-    fireBullet() {
-        const bullet = this.bullets.get(this.player.x, this.player.y);
-
-        if (bullet) {
-            bullet.enableBody(true, this.player.x, this.player.y, true, true);
-            const velocity = this.player.flipX ? -300 : 300;
-            bullet.setVelocity(velocity, -50);
-            bullet.body.setAllowGravity(false);
-
-            // Destroy bullet after time
-            this.time.delayedCall(1000, () => {
-                bullet.disableBody(true, true);
-            });
-        }
+        this.prevJumpState = isJump;
     }
 
     hitEnemy(player, enemy) {
-        // Check if player jumped on enemy
-        if (player.body.touching.down && enemy.body.touching.up) {
+        if (this.isGameOver) return;
+
+        if (enemy.body.touching.up && player.body.touching.down) {
+            // Kill Enemy
             enemy.disableBody(true, true);
-            player.setVelocityY(-300); // Bounce up
+            player.setVelocityY(-300); // Bounce
             this.score += 100;
-            this.updateUI();
-        } else {
-            this.handlePlayerDeath();
-        }
-    }
+            this.events.emit('updateScore', { score: this.score });
 
-    shootEnemy(bullet, enemy) {
-        bullet.disableBody(true, true);
-        enemy.disableBody(true, true);
-        this.score += 100;
-        this.updateUI();
-    }
-
-    handlePlayerDeath() {
-        this.lives--;
-        this.updateUI();
-
-        if (this.lives > 0) {
-            this.scene.restart({ lives: this.lives, score: this.score });
-        } else {
-            // Game Over
-            this.add.text(this.cameras.main.midPoint.x, this.cameras.main.midPoint.y, 'GAME OVER\nTap to Restart', {
-                fontSize: '32px',
-                fill: '#fff',
-                align: 'center',
-                backgroundColor: '#000'
-            }).setOrigin(0.5).setInteractive().on('pointerdown', () => {
-                this.scene.start('BootScene');
+            // Particles
+            const particles = this.add.particles(0, 0, 'particle', {
+                speed: 100,
+                scale: { start: 1, end: 0 },
+                blendMode: 'ADD',
+                lifespan: 500,
+                quantity: 10
             });
-            this.physics.pause();
+            particles.explode(10, enemy.x, enemy.y);
+        } else {
+            // Kill Player
+            this.handleDeath();
         }
+    }
+
+    handleDeath() {
+        if (this.isGameOver) return;
+        this.isGameOver = true;
+        this.physics.pause();
+        this.cameras.main.shake(300, 0.02);
+
+        this.time.delayedCall(500, () => {
+            this.lives--;
+            if (this.lives > 0) {
+                this.scene.restart({ lives: this.lives, score: this.score });
+            } else {
+                this.scene.stop('UIScene');
+                this.add.rectangle(0, 0, 800, 450, 0x000000, 0.7).setOrigin(0).setScrollFactor(0);
+                this.add.text(400, 225, 'GAME OVER', { fontSize: '40px', fill: '#fff' })
+                    .setOrigin(0.5).setScrollFactor(0)
+                    .setInteractive().on('pointerdown', () => this.scene.start('StartScene'));
+            }
+        });
     }
 
     reachGoal(player, goal) {
         this.physics.pause();
-        this.add.text(this.cameras.main.midPoint.x, this.cameras.main.midPoint.y, 'YOU WON!\nFound Gasparín <3', {
-            fontSize: '32px',
-            fill: '#fff',
-            align: 'center',
-            backgroundColor: '#FF69B4'
-        }).setOrigin(0.5).setInteractive().on('pointerdown', () => {
-            this.scene.start('BootScene');
-        });
-    }
+        this.isGameOver = true;
 
-    updateUI() {
-        this.events.emit('updateScore', { lives: this.lives, score: this.score });
+        this.add.rectangle(0, 0, 800, 450, 0x000000, 0.7).setOrigin(0).setScrollFactor(0);
+        this.add.text(400, 200, '¡Encontraste a tu amor!', {
+            fontSize: '32px',
+            fill: '#FF69B4',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0);
+
+        this.add.text(400, 300, 'Toca para volver', { fontSize: '24px', fill: '#fff' })
+            .setOrigin(0.5).setScrollFactor(0)
+            .setInteractive().on('pointerdown', () => this.scene.start('StartScene'));
     }
 }
 
@@ -268,64 +356,54 @@ class UIScene extends Phaser.Scene {
     }
 
     init(data) {
-        this.lives = data.lives || 3;
         this.score = data.score || 0;
+        this.lives = data.lives || 3;
     }
 
     create() {
-        // Setup buttons
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
-        const btnRadius = 40;
+        const btnSize = 80;
         const padding = 20;
 
-        // Helper to create interaction
-        const createBtn = (x, y, key, type) => {
-            const btn = this.add.image(x, y, key).setInteractive().setAlpha(0.6);
-            btn.on('pointerdown', () => {
-                this.updateInput(type, true);
-                btn.setAlpha(1);
-            });
-            btn.on('pointerup', () => {
-                this.updateInput(type, false);
-                btn.setAlpha(0.6);
-            });
-            btn.on('pointerout', () => {
-                this.updateInput(type, false);
-                btn.setAlpha(0.6);
-            });
-            return btn;
-        };
+        // Score Text
+        this.scoreText = this.add.text(20, 20, `Score: ${this.score}`, { fontSize: '20px', fill: '#000', fontStyle: 'bold' });
+        this.livesText = this.add.text(20, 50, `Lives: ${this.lives}`, { fontSize: '20px', fill: '#000', fontStyle: 'bold' });
 
-        // D-Pad / Movement
-        createBtn(btnRadius + padding, height - btnRadius - padding, 'btnDir', 'left');
-        createBtn(btnRadius * 3 + padding + 10, height - btnRadius - padding, 'btnDir', 'right');
-
-        // Actions
-        createBtn(width - btnRadius - padding, height - btnRadius - padding, 'btnJump', 'jump');
-        createBtn(width - btnRadius * 3 - padding - 10, height - btnRadius - padding, 'btnAction', 'action');
-
-        // HUD
-        this.livesText = this.add.text(10, 10, `Lives: ${this.lives}`, { fontSize: '16px', fill: '#FFF' });
-        this.scoreText = this.add.text(10, 30, `Score: ${this.score}`, { fontSize: '16px', fill: '#FFF' });
-
-        // Listen for updates from GameScene
+        // Update listener
         const gameScene = this.scene.get('GameScene');
         if (gameScene) {
             gameScene.events.on('updateScore', (data) => {
-                this.livesText.setText(`Lives: ${data.lives}`);
-                this.scoreText.setText(`Score: ${data.score}`);
+                if (data.score !== undefined) this.scoreText.setText(`Score: ${data.score}`);
             });
         }
+
+        // Buttons
+        // Left
+        this.createBtn(padding + btnSize/2, height - padding - btnSize/2, 'btnLeft', 'left');
+        // Right
+        this.createBtn(padding + btnSize * 1.5 + 10, height - padding - btnSize/2, 'btnRight', 'right');
+        // Jump
+        this.createBtn(width - padding - btnSize/2, height - padding - btnSize/2, 'btnJump', 'jump');
     }
 
-    updateInput(key, value) {
-        const data = {};
-        data[key] = value;
-        this.events.emit('input', data);
+    createBtn(x, y, key, type) {
+        const btn = this.add.image(x, y, key).setInteractive().setAlpha(0.5);
+
+        btn.on('pointerdown', () => {
+            this.events.emit('input', { [type]: true });
+            btn.setAlpha(1);
+        });
+        btn.on('pointerup', () => {
+            this.events.emit('input', { [type]: false });
+            btn.setAlpha(0.5);
+        });
+        btn.on('pointerout', () => {
+            this.events.emit('input', { [type]: false });
+            btn.setAlpha(0.5);
+        });
     }
 }
 
-// Initialize Game
-config.scene = [BootScene, GameScene, UIScene];
+config.scene = [BootScene, StartScene, GameScene, UIScene];
 const game = new Phaser.Game(config);
