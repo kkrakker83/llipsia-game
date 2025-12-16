@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Llipsia - La Pingüina</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Llipsia: Aventura Invernal</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+        #game-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+    </style>
 </head>
 <body>
-  <h1>Llipsia 🐧</h1>
-  <canvas id="gameCanvas"></canvas>
-  <div id="score">Puntuación: 0</div>
-  <p class="instrucciones">Toca cualquier lado del pingüino para moverlo. ¡Come los 👻 y no choques!</p>
-  <script src="game.js"></script>
+    <div id="game-container"></div>
+    <script src="game.js"></script>
 </body>
 </html>
